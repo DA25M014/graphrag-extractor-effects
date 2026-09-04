@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.pyc
+logs/*.log
+
+# Never commit credentials. GraphRAG writes an .env per workspace and the
+# API key goes in it.
+.env
+**/.env
+
+# LLM cache: large, and it holds full prompt/response pairs.
+idx/*/cache/
+idx/*/logs/
+
+# Indexed outputs are rebuildable; input copies duplicate corpora/.
+idx/

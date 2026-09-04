@@ -1,0 +1,19 @@
+# GraphRAG itself, pinned: the pipeline being studied, and the source of
+# the chunking/gleanings defaults that cost_model.py reads.
+graphrag==3.1.2
+graphrag-cache==3.1.2
+graphrag-chunking==3.1.2
+graphrag-common==3.1.2
+graphrag-input==3.1.2
+graphrag-llm==3.1.2
+graphrag-storage==3.1.2
+graphrag-vectors==3.1.2
+
+# Reading GraphRAG's parquet output and measuring the graph.
+pandas==3.0.5
+pyarrow==25.0.1
+numpy==2.5.2
+networkx==3.6.1
+
+# The figure.
+matplotlib==3.11.1

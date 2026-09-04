@@ -1,0 +1,6 @@
+corpus,mode,model,cost_kind,entities_raw,relationships_raw,n_lcc,m_lcc,dbar,dmax,frac_dropped_off_lcc,n_entity_types,nonascii_title_frac
+christmas_carol,local,llama3.1:8b via Ollama,local,291,163,97,125,2.58,57,0.667,14,0.0
+christmas_carol,nlp,regex_english (no LLM),none,161,1466,161,1466,18.21,76,0.0,1,0.0
+christmas_carol,qwen,qwen2.5:7b-instruct via Ollama,local,181,183,104,145,2.79,67,0.425,11,0.083
+moby_dick,nlp,regex_english (no LLM),none,1888,37452,1888,37452,39.67,245,0.0,1,0.0
+sherlock_holmes,nlp,regex_english (no LLM),none,669,9299,669,9299,27.8,103,0.0,1,0.0
