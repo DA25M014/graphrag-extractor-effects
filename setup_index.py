@@ -142,9 +142,16 @@ def build(corpus, mode, model='gpt-4o-mini'):
     shutil.copy(corpus, os.path.join(root, 'input',
                                      os.path.basename(corpus)))
 
-    # LLM extraction needs the shipped prompt files; NLP does not.
-    probe_prompts = os.path.join(HERE, 'idx', '_probe', 'prompts')
-    if mode in ('llm', 'local') and os.path.isdir(probe_prompts):
+    # LLM extraction needs the prompt files; NLP does not. They are
+    # committed under prompts/ so a clone works without `graphrag init`,
+    # and so the prompt that produced the shipped results is pinned.
+    probe_prompts = os.path.join(HERE, 'prompts')
+    if mode in ('llm', 'local'):
+        if not os.path.isdir(probe_prompts):
+            raise SystemExit(
+                f"{mode} mode needs prompt templates at {probe_prompts}, "
+                f"which is missing. Restore them, or run `graphrag init` in "
+                f"a scratch workspace and copy its prompts/ here.")
         dst = os.path.join(root, 'prompts')
         if not os.path.isdir(dst):
             shutil.copytree(probe_prompts, dst)

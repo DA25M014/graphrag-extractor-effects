@@ -229,7 +229,9 @@ configuration values quoted from `setup_index.py` such as chunk size and
 - **One run per cell.** LLM extraction is not deterministic and no arm is
   repeated, so run-to-run variance is unmeasured.
 - **One prompt, one vocabulary, one chunk size.** No prompt, `entity_types`
-  or chunking ablation is run anywhere here. The finding is about three
+  or chunking ablation is run anywhere here. The exact prompt used is
+  committed under `prompts/` so the claim can be checked rather than taken
+  on trust. The finding is about three
   models under one configuration, not about LLM extraction in general, and
   a prompt that explicitly asked for co-occurrence edges might well close
   the gap.
@@ -249,6 +251,7 @@ configuration values quoted from `setup_index.py` such as chunk size and
 | `cost_model.py` | Pre-spend indexing cost estimate, read from graphrag's own defaults |
 | `make_fig.py` | Regenerates the figure from the CSV and nothing else |
 | `verify_numbers.py` | Gate: checks every CSV-derived number in this README |
+| `prompts/` | GraphRAG's own default extraction prompts, committed so the LLM path is reproducible and the prompt is pinned |
 | `corpora/` | Public domain source texts, see `CORPORA_NOTICE.md` |
 | `results/extraction_models.csv` | Every measured number this repository reports |
 
