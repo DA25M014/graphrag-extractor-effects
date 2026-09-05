@@ -194,9 +194,19 @@ source, because they depend on the corpus.
 ```
 
 For the three corpora here (482,251 tokens, 438 chunks) it estimates $0.71
-on gpt-4o-mini for extraction. That is a model, not a measurement. Check
-your provider's usage dashboard for what a run actually cost; GraphRAG does
-not record token usage in a form this repository can read back.
+on gpt-4o-mini for extraction, from 2,102,400 input and 657,000 output
+tokens.
+
+**The run actually cost $0.65**, over 1,560 requests and 2,965,133 input
+tokens, read from the provider's usage dashboard. So the total was 9% high,
+but that is a better headline than the model deserves: it underestimated
+input tokens by 41% and overestimated output tokens by roughly half, and
+the two errors happened to cancel. Treat the total as calibrated to within
+about 10% on this corpus type and the token split as not calibrated at all.
+
+GraphRAG does not record token usage in a form this repository can read
+back, so the $0.65 is transcribed from the dashboard rather than computed
+here, and `verify_numbers.py` does not check it.
 
 ## Verification
 
@@ -211,10 +221,10 @@ the 12.0x mean-degree ratio read **both** operands from the CSV rather than
 hand-typing either, since a gate that types its own operands proves
 nothing. It exits non-zero on any mismatch.
 
-Out of its scope, and therefore unchecked: the $0.71 cost estimate, the
-token and chunk counts behind it, the "about 16 minutes" runtime, and
-configuration values quoted from `setup_index.py` such as chunk size and
-`max_gleanings`.
+Out of its scope, and therefore unchecked: the $0.71 cost estimate and the
+$0.65 measured spend, the token and chunk counts behind them, the "about 16
+minutes" runtime, and configuration values quoted from `setup_index.py`
+such as chunk size and `max_gleanings`.
 
 ## Limitations
 
