@@ -81,6 +81,34 @@ CLAIMS = [
     ('qwen translated entity names', EM, dict(CC, mode='qwen'),
      'nonascii_title_frac', 0.083),
     ('qwen entity types', EM, dict(CC, mode='qwen'), 'n_entity_types', 11),
+
+    # gpt-4o-mini, the paid arm: recovers entities, not edges.
+    ('gpt-4o-mini christmas carol n', EM, dict(CC, mode='llm'), 'n_lcc', 158),
+    ('gpt-4o-mini christmas carol m', EM, dict(CC, mode='llm'), 'm_lcc', 238),
+    ('gpt-4o-mini christmas carol mean degree', EM, dict(CC, mode='llm'),
+     'dbar', 3.01),
+    ('gpt-4o-mini christmas carol off the LCC', EM, dict(CC, mode='llm'),
+     'frac_dropped_off_lcc', 0.214),
+    ('gpt-4o-mini christmas carol clean titles', EM, dict(CC, mode='llm'),
+     'nonascii_title_frac', 0.0),
+    ('gpt-4o-mini christmas carol entity types', EM, dict(CC, mode='llm'),
+     'n_entity_types', 5),
+    ('gpt-4o-mini sherlock n', EM,
+     {'corpus': 'sherlock_holmes', 'mode': 'llm'}, 'n_lcc', 562),
+    ('gpt-4o-mini sherlock m', EM,
+     {'corpus': 'sherlock_holmes', 'mode': 'llm'}, 'm_lcc', 867),
+    ('gpt-4o-mini sherlock mean degree', EM,
+     {'corpus': 'sherlock_holmes', 'mode': 'llm'}, 'dbar', 3.09),
+    ('gpt-4o-mini moby dick n', EM,
+     {'corpus': 'moby_dick', 'mode': 'llm'}, 'n_lcc', 905),
+    ('gpt-4o-mini moby dick m', EM,
+     {'corpus': 'moby_dick', 'mode': 'llm'}, 'm_lcc', 1491),
+    ('gpt-4o-mini moby dick mean degree', EM,
+     {'corpus': 'moby_dick', 'mode': 'llm'}, 'dbar', 3.30),
+    ('regex sherlock mean degree', EM,
+     {'corpus': 'sherlock_holmes', 'mode': 'nlp'}, 'dbar', 27.80),
+    ('regex moby dick mean degree', EM,
+     {'corpus': 'moby_dick', 'mode': 'nlp'}, 'dbar', 39.67),
 ]
 
 # Derived. Both operands read from the CSV.
@@ -95,12 +123,42 @@ RATIOS = [
     ('regex over llama3.1 mean degree',
      (EM, dict(CC, mode='nlp'), 'dbar'),
      (EM, dict(CC, mode='local'), 'dbar'), 7.06, 2),
+
+    # gpt-4o-mini against regex: nodes recovered, edges recovered, and the
+    # mean-degree ratio that widens with corpus size.
+    ('gpt-4o-mini recovers 98% of christmas carol nodes',
+     (EM, dict(CC, mode='llm'), 'n_lcc'),
+     (EM, dict(CC, mode='nlp'), 'n_lcc'), 0.98, 2),
+    ('gpt-4o-mini recovers 16% of christmas carol edges',
+     (EM, dict(CC, mode='llm'), 'm_lcc'),
+     (EM, dict(CC, mode='nlp'), 'm_lcc'), 0.16, 2),
+    ('gpt-4o-mini recovers 84% of sherlock nodes',
+     (EM, {'corpus': 'sherlock_holmes', 'mode': 'llm'}, 'n_lcc'),
+     (EM, {'corpus': 'sherlock_holmes', 'mode': 'nlp'}, 'n_lcc'), 0.84, 2),
+    ('gpt-4o-mini recovers 48% of moby dick nodes',
+     (EM, {'corpus': 'moby_dick', 'mode': 'llm'}, 'n_lcc'),
+     (EM, {'corpus': 'moby_dick', 'mode': 'nlp'}, 'n_lcc'), 0.48, 2),
+    ('mean-degree ratio christmas carol',
+     (EM, dict(CC, mode='nlp'), 'dbar'),
+     (EM, dict(CC, mode='llm'), 'dbar'), 6.0, 1),
+    ('mean-degree ratio sherlock',
+     (EM, {'corpus': 'sherlock_holmes', 'mode': 'nlp'}, 'dbar'),
+     (EM, {'corpus': 'sherlock_holmes', 'mode': 'llm'}, 'dbar'), 9.0, 1),
+    ('mean-degree ratio moby dick',
+     (EM, {'corpus': 'moby_dick', 'mode': 'nlp'}, 'dbar'),
+     (EM, {'corpus': 'moby_dick', 'mode': 'llm'}, 'dbar'), 12.0, 1),
+    ('llama3.1 recovers 60% of christmas carol nodes',
+     (EM, dict(CC, mode='local'), 'n_lcc'),
+     (EM, dict(CC, mode='nlp'), 'n_lcc'), 0.60, 2),
+    ('qwen recovers 65% of christmas carol nodes',
+     (EM, dict(CC, mode='qwen'), 'n_lcc'),
+     (EM, dict(CC, mode='nlp'), 'n_lcc'), 0.65, 2),
 ]
 
 # Claims that only exist once the paid arm has been run. Absent rows are
 # reported as SKIPPED rather than silently passing, so a README that
 # quotes gpt-4o-mini numbers cannot slip through before the run.
-OPTIONAL_MODES = ['llm']
+OPTIONAL_MODES = []
 
 
 def main():
