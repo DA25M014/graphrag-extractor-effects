@@ -105,7 +105,7 @@ def load_entity_graph(out_dir, verbose=True):
         'dmax': int(deg.max()),
         'tail_index_hill': _hill(deg),
         'lcc_fraction': n / n_raw,
-        # keep the title order so leaf memberships stay interpretable
+        # keep the title order so vertex indices map back to entity names
         'titles': [titles[v] for v in sorted(H.nodes())],
     }
     if verbose:

@@ -80,12 +80,21 @@ def main():
 
     # Panel 2: node recall against edge recall, relative to the regex graph.
     ax = axes[1]
-    x = np.arange(len(CORPUS_ORDER))
+    paired = [c for c in CORPUS_ORDER
+              if (c, 'llm') in R and (c, 'nlp') in R]
+    if not paired:
+        ax.text(0.5, 0.5, 'no corpus has both a regex and an\nLLM arm '
+                'indexed yet', ha='center', va='center', fontsize=8,
+                transform=ax.transAxes)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        paired = []
+    x = np.arange(len(paired))
     w = 0.38
     nrec = [100 * int(R[(c, 'llm')]['n_lcc']) / int(R[(c, 'nlp')]['n_lcc'])
-            for c in CORPUS_ORDER]
+            for c in paired]
     erec = [100 * int(R[(c, 'llm')]['m_lcc']) / int(R[(c, 'nlp')]['m_lcc'])
-            for c in CORPUS_ORDER]
+            for c in paired]
     ax.bar(x - w / 2, nrec, w, color=BLUE, edgecolor='black', linewidth=0.5,
            label='nodes')
     ax.bar(x + w / 2, erec, w, color=BLUE, edgecolor='black', linewidth=0.5,
@@ -94,7 +103,7 @@ def main():
         ax.text(xi - w / 2, a + 2, f'{a:.0f}%', ha='center', fontsize=7)
         ax.text(xi + w / 2, b + 2, f'{b:.0f}%', ha='center', fontsize=7)
     ax.set_xticks(x)
-    ax.set_xticklabels([CORPUS_LABEL[c] for c in CORPUS_ORDER], fontsize=7.5)
+    ax.set_xticklabels([CORPUS_LABEL[c] for c in paired], fontsize=7.5)
     ax.set_ylabel('% of the regex graph')
     ax.set_ylim(0, 112)
     ax.set_title('gpt-4o-mini recovers the entities,\nnot the edges',

@@ -1,11 +1,11 @@
 """Build one GraphRAG workspace per corpus, with the pipeline trimmed to
-the steps the audit actually needs.
+the steps this study actually needs.
 
-The audit tests the entity graph and its community assignment. It does
-not need community summaries, text embeddings or claim extraction, and
-those are the steps that cost money. Trimming them is not a shortcut:
+What is measured here is the entity graph itself. That needs neither
+community summaries nor text embeddings nor claim extraction, and those
+are the steps that cost money. Trimming them is not a shortcut:
 `create_community_reports` cannot change the graph it summarizes, so
-dropping it leaves the audited object identical.
+dropping it leaves the compared object identical.
 
 Two extraction modes:
   nlp   `extract_graph_nlp`, regex_english analyzer. No LLM, no API key,
@@ -16,11 +16,11 @@ Two extraction modes:
   local Same LLM extraction workflow as `llm`, but pointed at an
         OpenAI-compatible endpoint on localhost (Ollama). Zero cost, no
         API key, no card. The extracted graph is still LLM-built, which
-        is the property the audit's claim depends on; only the model
+        is the property this study's claim depends on; only the model
         differs, and the model is recorded in the CSV.
 
 Both modes leave `cluster_graph.max_cluster_size` at GraphRAG's default
-of 10, because that setting is part of what is being audited.
+of 10, because that setting is part of what is being compared.
 """
 
 import os
@@ -93,7 +93,7 @@ vector_store:
   type: lancedb
   db_uri: output/lancedb
 
-# Only the steps the audit needs. Community reports, text embeddings and
+# Only the steps this study needs. Community reports, text embeddings and
 # claim extraction are omitted: none of them can change the entity graph
 # or its community assignment, and they are where the cost is.
 workflows: {workflows}
@@ -117,7 +117,7 @@ extract_graph_nlp:
   text_analyzer:
     extractor_type: regex_english
 
-# GraphRAG's own default. Part of what is being audited; do not change.
+# GraphRAG's own default. Part of what is being compared; do not change.
 cluster_graph:
   max_cluster_size: 10
 

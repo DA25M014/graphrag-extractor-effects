@@ -16,6 +16,7 @@ import os
 import sys
 import csv
 import glob
+import argparse
 import unicodedata
 
 import pandas as pd
@@ -52,6 +53,13 @@ def non_ascii_fraction(titles):
 
 
 def main():
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument('--out', default=os.path.join(HERE, 'results',
+                                                  'extraction_models.csv'),
+                    help='where to write; defaults to the shipped CSV')
+    ap.add_argument('--force', action='store_true',
+                    help='allow overwriting with FEWER rows than exist now')
+    args = ap.parse_args()
     rows = []
     for d in sorted(glob.glob(os.path.join(HERE, 'idx', '*', 'output'))):
         ws = os.path.basename(os.path.dirname(d))
@@ -93,9 +101,19 @@ def main():
               f"types={rows[-1]['n_entity_types']}")
 
     if not rows:
-        print('no indexes found')
+        print('no indexes found under idx/*/output; nothing written')
         return
-    out = os.path.join(HERE, 'results', 'extraction_models.csv')
+    out = args.out
+    # A partial rebuild would otherwise silently shrink the shipped CSV and
+    # break every downstream claim, which is the first thing a fresh clone
+    # would do.
+    if os.path.exists(out) and not args.force:
+        existing = len(list(csv.DictReader(open(out))))
+        if len(rows) < existing:
+            print(f"refusing to overwrite {out}: it has {existing} rows and "
+                  f"this run found only {len(rows)}. Index the missing arms, "
+                  f"or pass --out to write elsewhere, or --force.")
+            return
     with open(out, 'w', newline='') as f:
         w = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
         w.writeheader()

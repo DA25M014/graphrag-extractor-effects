@@ -1,20 +1,23 @@
 # graphrag-extractor-effects
 
-**Graph density in Microsoft GraphRAG is set by the extraction paradigm,
-not by the model. Paying for a better LLM buys you entities, not edges.**
+**In Microsoft GraphRAG, the entity extractor decides how dense the graph
+is, and a better LLM does not make it denser.**
 
 GraphRAG turns a corpus into an entity graph, partitions that graph, and
 summarizes the partitions. Everything downstream depends on the graph. But
 the graph is not a property of the corpus: it is a property of the corpus
 *and* whatever extracted the entities.
 
-This repository holds three corpora through the same GraphRAG pipeline,
-the same chunker and the same clusterer, changing only the extractor. Four
-extractors, from a regex with no LLM at all up to gpt-4o-mini.
+This repository holds three corpora through GraphRAG, changing the
+extractor and holding the chunker and clusterer fixed. Four extractors,
+from a regex with no LLM at all up to gpt-4o-mini.
+
+Not affiliated with or endorsed by Microsoft, OpenAI, Meta or Alibaba
+Cloud. GraphRAG is Microsoft's, MIT licensed.
 
 ## The result
 
-Mean degree, across corpora spanning 161 to 1,888 nodes. From
+Mean degree, across graphs spanning 97 to 1,888 nodes. From
 `results/extraction_models.csv`:
 
 | Extractor | A Christmas Carol | Sherlock Holmes | Moby Dick |
@@ -24,51 +27,67 @@ Mean degree, across corpora spanning 161 to 1,888 nodes. From
 | llama3.1:8b (local) | 2.58 | | |
 | qwen2.5:7b (local) | 2.79 | | |
 
-**Every LLM extractor lands near mean degree 3 and stays there.** A 7B
-model run locally and a production gpt-4o-mini differ by less than one
-edge per node, and neither moves as the corpus grows fourteen-fold. The
-regex path starts at 18 and climbs to 40 over the same range. Density is a
-property of what the extraction step is *asked to emit*, not of how good
-the model is at emitting it: `extract_graph_nlp` links noun phrases that
-co-occur, so it grows denser as a corpus gives entities more chances to
-appear together, while LLM extraction emits only relations a model states
-explicitly, and that count stays roughly proportional to the number of
-entities.
+**Three instruction-tuned models spanning 7B to a production API landed
+between 2.58 and 3.30 mean degree. The co-occurrence path, over the same
+corpora, produced 18 to 40.** The regex graph densifies as the corpus
+grows, rising 18.2 to 39.7 while its node count grows 11.7x; gpt-4o-mini
+rises only 3.01 to 3.30 over the same range.
+
+The mechanism is not model quality. `extract_graph_nlp` links noun phrases
+that co-occur, so more text gives entities more chances to appear together
+and the graph densifies. LLM extraction emits only relations a model
+states explicitly, and that count stays roughly proportional to the number
+of entities.
 
 ![extractor effects](results/f1_extractor_effects.png)
 
 ## What a better model does buy
 
-Model quality is not irrelevant. It moves entity recall, and it moves
-entity *resolution*. It just does not move density.
+Model quality is not irrelevant. It moves how much of the corpus ends up
+connected, and it moves whether the extractor follows instructions. It
+just does not move density.
 
-| | llama3.1:8b | qwen2.5:7b | gpt-4o-mini |
+| A Christmas Carol | llama3.1:8b | qwen2.5:7b | gpt-4o-mini |
 |---|---|---|---|
-| nodes, as % of the regex graph | 60% | 65% | **98%** |
-| entities left off the largest component | 67% | 43% | **21%** |
+| entities extracted | 291 | 181 | 201 |
+| nodes in the largest component | 97 | 104 | **158** |
+| extracted entities left off it | 67% | 43% | **21%** |
 | non-ASCII entity titles | 0% | **8.3%** | 0% |
-| distinct entity types | 14 | 11 | 5 |
+| distinct entity types emitted | 14 | 11 | **5** |
 
-On A Christmas Carol gpt-4o-mini finds 158 of the 161 entities the regex
-path finds, against llama3.1's 97, and leaves 21% of what it extracted off
-the main component against llama3.1's 67%. That is a large, real
-improvement. It comes with 238 edges against the regex path's 1,466.
+The regex path, for reference, extracts 161 entities and connects all of
+them.
 
-**qwen2.5 translated the entity names.** It emitted Chinese renderings of
-English proper nouns alongside untranslated ones, and a type vocabulary
-mixing Chinese and English labels. 8.3% of its entity titles contain
-non-ASCII letters. The translated and untranslated forms of one entity
-become two nodes, so entity resolution fails silently: nothing errors, the
-pipeline completes, and the graph is wrong. The `nonascii_title_frac`
-column exists to catch exactly this. gpt-4o-mini shows 0% on A Christmas
-Carol and 0.3% on the two larger corpora.
+Two readings that are easy to get backwards. First, llama3.1 extracted
+*more* raw entities than the regex path did, 291 against 161; its problem
+is that two thirds of them never joined the main component. So its node
+count being 60% of the regex graph's is a statement about connectivity,
+not about recall, and no code here checks whether the two extractors found
+the *same* entities. Every percentage in this repository compares counts,
+never sets.
+
+Second, the LLM arms were configured with a four-type vocabulary
+(`organization, person, geo, event`; `setup_index.py`). gpt-4o-mini
+emitting 5 types is close to obedience. llama3.1 emitting 14 and qwen2.5
+emitting 11 means those models ignored the configured list. That row
+measures instruction-following, not descriptive richness.
+
+**qwen2.5 translated the entity names in this run.** It emitted Chinese
+renderings of English proper nouns alongside untranslated ones, and a type
+vocabulary mixing Chinese and English labels. 8.3% of its entity titles
+contain non-ASCII letters. The translated and untranslated forms of one
+entity become two nodes, so entity resolution fails silently: nothing
+errors, the pipeline completes, and the graph is wrong. The
+`nonascii_title_frac` column exists to catch exactly this. gpt-4o-mini
+shows 0% here and 0.3% on the two larger corpora.
 
 ## The gap widens with corpus size
 
 Because the regex graph densifies with n and the LLM graph does not, the
-two diverge as corpora grow. gpt-4o-mini against `regex_english`:
+two diverge as corpora grow. gpt-4o-mini against `regex_english`, as count
+ratios:
 
-| Corpus | nodes recovered | edges recovered | mean-degree ratio |
+| Corpus | nodes, as % of the regex graph | edges, as % | mean-degree ratio |
 |---|---|---|---|
 | A Christmas Carol | 98% | 16% | 6.0x |
 | Sherlock Holmes | 84% | 9% | 9.0x |
@@ -80,7 +99,7 @@ and the size of the discrepancy depends on how large your corpus is.
 ## Why this matters
 
 If you read a result reported on "the GraphRAG entity graph" for some
-corpus, you cannot reconstruct the object it was measured on. Papers do
+corpus, you cannot reconstruct the object it was measured on. Papers
 generally name the extraction model. What they do not report is the
 resulting graph's structural statistics, and the tables above are the
 reason that matters: two reasonable extractor choices give graphs that
@@ -94,25 +113,52 @@ entity titles that are non-ASCII, costs nothing and catches a silent
 entity-resolution failure that a 7B model produced here on its first
 attempt.
 
+## What is NOT held constant
+
+The headline says the extractor is what changes. Three things also differ
+between arms, and each weakens the comparison somewhere:
+
+- **`max_gleanings`.** Gleanings are a follow-up round telling the model
+  it missed entities. `setup_index.py` sets it to 0 for both local arms
+  and 1 for gpt-4o-mini, because qwen2.5:7b stalled for more than 20
+  minutes generating on a single chunk. So gpt-4o-mini got a second
+  extraction pass that llama3.1 and qwen2.5 did not, and the connectivity
+  comparison between them is not clean. It does not touch the density
+  finding, which holds at both settings.
+- **`prune_graph`.** The `nlp` arm runs GraphRAG's `prune_graph` step and
+  the LLM arms do not, following each path's own defaults.
+- **The entity-type vocabulary.** The LLM arms are given four types; the
+  regex arm has no vocabulary and emits one. See above.
+
+Chunk size is fixed at 1,200 tokens with 100 overlap across every arm and
+is never swept, so the regex path's density is partly a function of a
+constant nobody varied here.
+
 ## Reproducing this
 
 ```bash
 python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt
 
-# Build one GraphRAG workspace per corpus, per extraction mode.
+# Build one GraphRAG workspace per corpus for the no-LLM path.
 ./.venv/bin/python setup_index.py --mode nlp
 
-# The no-LLM path needs no API key and costs nothing.
-GRAPHRAG_API_KEY=unused ./.venv/bin/python -m graphrag index \
-    --root idx/christmas_carol_nlp --skip-validation
+# Index all three. No API key, no cost.
+for c in christmas_carol sherlock_holmes moby_dick; do
+    GRAPHRAG_API_KEY=unused ./.venv/bin/python -m graphrag index \
+        --root idx/${c}_nlp --skip-validation
+done
 
 # Record the shape of every index that exists, then plot.
 ./.venv/bin/python exp_extraction_models.py
 ./.venv/bin/python make_fig.py
 ```
 
-The paid arm indexes all three corpora with gpt-4o-mini. Estimate the
-spend first with `cost_model.py`; the run below took about 16 minutes:
+`exp_extraction_models.py` rewrites `results/extraction_models.csv` from
+whatever indexes are present, so a partial rebuild will shrink the shipped
+CSV. Pass `--out` to write elsewhere while experimenting.
+
+The paid arm indexes all three corpora with gpt-4o-mini and took about 16
+minutes. Estimate the spend first with `cost_model.py`:
 
 ```bash
 ./.venv/bin/python setup_index.py --mode llm
@@ -130,12 +176,10 @@ ollama pull llama3.1:8b
 ./.venv/bin/python setup_index.py --mode local
 ```
 
-One practical note. `max_gleanings` is a follow-up round that tells the
-model it missed entities. GraphRAG's default is 1, and both gpt-4o-mini
-and llama3.1 tolerate it, but qwen2.5:7b stalled for more than 20 minutes
-generating on a single chunk, so `setup_index.py` allows it to be set to 0
-for small local models. Gleanings are also roughly half the LLM calls, so
-the setting matters for cost as well as recall.
+The qwen2.5 arm in the shipped CSV was produced by pointing the `local`
+mode at `qwen2.5:7b-instruct` and renaming the workspace by hand; there is
+no `--mode qwen`. That row is reported as measured but is not reproducible
+from a flag in this repository.
 
 ## Cost
 
@@ -149,9 +193,10 @@ source, because they depend on the corpus.
 ./.venv/bin/python cost_model.py --corpus-tokens 250000 --model gpt-4o-mini
 ```
 
-For the three corpora here (482,251 tokens total, 438 chunks) it estimates
-$0.71 on gpt-4o-mini for extraction. That is a model, not a measurement.
-Check your provider's usage dashboard for what a run actually cost.
+For the three corpora here (482,251 tokens, 438 chunks) it estimates $0.71
+on gpt-4o-mini for extraction. That is a model, not a measurement. Check
+your provider's usage dashboard for what a run actually cost; GraphRAG does
+not record token usage in a form this repository can read back.
 
 ## Verification
 
@@ -159,32 +204,35 @@ Check your provider's usage dashboard for what a run actually cost.
 ./.venv/bin/python verify_numbers.py
 ```
 
-Every number in this README is checked against `results/*.csv` by that
-script, which names the file, row and column each must come from. Derived
-figures such as the 12.0x mean-degree ratio read **both** operands from the
-CSV rather than hand-typing either, since a gate that types its own
-operands proves nothing. It exits non-zero on any mismatch.
+Every number in this README that is **derived from `results/*.csv`** is
+checked by that script, which names the file, row and column each must
+come from, and reports how many claims it checked. Derived figures such as
+the 12.0x mean-degree ratio read **both** operands from the CSV rather than
+hand-typing either, since a gate that types its own operands proves
+nothing. It exits non-zero on any mismatch.
+
+Out of its scope, and therefore unchecked: the $0.71 cost estimate, the
+token and chunk counts behind it, the "about 16 minutes" runtime, and
+configuration values quoted from `setup_index.py` such as chunk size and
+`max_gleanings`.
 
 ## Limitations
 
 - **Three corpora, one genre, one language.** All three are 19th-century
-  English literary prose from Project Gutenberg. Nothing here establishes
-  that the same spread appears on news, code, clinical notes or
-  multilingual text, and the qwen2.5 translation failure in particular may
-  behave differently on a corpus that is not entirely English.
+  English literary prose. Nothing here establishes that the same spread
+  appears on news, code, clinical notes or multilingual text, and the
+  qwen2.5 translation failure in particular may behave differently on a
+  corpus that is not entirely English.
 - **The four-way comparison exists on one corpus.** Only A Christmas Carol
-  was indexed by all four extractors. The local models were not run on the
-  two larger corpora, so the claim that they sit in the same density band
-  as gpt-4o-mini rests on a single point each.
-- **One run per cell.** LLM extraction is not deterministic across runs and
-  no arm is repeated here, so run-to-run variance is unmeasured. The gaps
-  reported above are far larger than any plausible variation, but "far
-  larger" is a judgment, not a measurement.
-- **`max_gleanings` differs across arms.** It is 1 for gpt-4o-mini and
-  llama3.1 and 0 for qwen2.5, for the stalling reason above. Gleanings
-  raise recall, so qwen2.5's entity count is not strictly comparable to the
-  other two LLM arms. It does not affect the density finding, which holds
-  across both settings.
+  was indexed by all four extractors, so the claim that the local models
+  sit in the same density band as gpt-4o-mini rests on a single point each.
+- **One run per cell.** LLM extraction is not deterministic and no arm is
+  repeated, so run-to-run variance is unmeasured.
+- **One prompt, one vocabulary, one chunk size.** No prompt, `entity_types`
+  or chunking ablation is run anywhere here. The finding is about three
+  models under one configuration, not about LLM extraction in general, and
+  a prompt that explicitly asked for co-occurrence edges might well close
+  the gap.
 - **This is descriptive.** It reports what the extractors produce. It does
   not evaluate answer quality, retrieval, or which graph is better for any
   downstream task, and nothing here says the dense co-occurrence graph is
@@ -200,10 +248,12 @@ operands proves nothing. It exits non-zero on any mismatch.
 | `exp_extraction_models.py` | Records the shape of every index that exists; writes the CSV |
 | `cost_model.py` | Pre-spend indexing cost estimate, read from graphrag's own defaults |
 | `make_fig.py` | Regenerates the figure from the CSV and nothing else |
-| `verify_numbers.py` | Gate: checks every number in this README against the CSVs |
-| `corpora/` | Public-domain source texts (Project Gutenberg, boilerplate stripped) |
-| `results/extraction_models.csv` | Every number this repository reports |
+| `verify_numbers.py` | Gate: checks every CSV-derived number in this README |
+| `corpora/` | Public domain source texts, see `CORPORA_NOTICE.md` |
+| `results/extraction_models.csv` | Every measured number this repository reports |
 
 ## License
 
-MIT, see `LICENSE`. The corpora are public domain via Project Gutenberg.
+Code, figures and result files: MIT, see `LICENSE`. The texts in
+`corpora/` are public domain and are not covered by that license; see
+`CORPORA_NOTICE.md`.
